@@ -1,0 +1,28 @@
+{
+  "places": {
+    "images": "/data/vision/oliva/scenedataset/places2new/challenge2016/data_large/",
+    "im_list": "/data/vision/torralba/scratch2/hangzhao/scale_places/pspnet_prediction/train.txt",
+    "polygons": "/data/vision/oliva/scenedataset/scaleplaces/places/polygons/",
+    "ground_truth": "",
+    "workspace": "/data/vision/oliva/scenedataset/scaleplaces/datasets/places/",
+    "predictions": "/data/vision/oliva/scenedataset/scaleplaces/datasets/places/predictions/",
+    "pspnet_prediction": "/data/vision/torralba/scratch2/hangzhao/scale_places/pspnet_prediction/"
+  },
+  "ade20k": {
+    "images": "/data/vision/oliva/scenedataset/ADE20K_challenge/data/ADEChallengeData2016/images/",
+    "im_list": "/data/vision/oliva/scenedataset/ADE20K_challenge/data/ADEChallengeData2016/images/training.txt",
+    "polygons": "/data/vision/oliva/scenedataset/scaleplaces/ADE20K/pspnet_prediction/polygons/",
+    "ground_truth": "/data/vision/oliva/scenedataset/ADE20K_challenge/data/ADEChallengeData2016/annotations/",
+    "ground_truth_polygons": "/data/vision/oliva/scenedataset/scaleplaces/ADE20K/ground_truth/polygons/",
+    "workspace": "/data/vision/oliva/scenedataset/scaleplaces/datasets/ade20k/",
+    "predictions": "/data/vision/oliva/scenedataset/scaleplaces/datasets/ade20k/predictions/",
+    "pspnet_prediction": "/data/vision/oliva/scenedataset/scaleplaces/datasets/ade20k/predictions/pspnet/"
+  },
+  "ade20k_val": {
+    "images": "/data/vision/oliva/scenedataset/ADE20K_challenge/data/ADEChallengeData2016/images/",
+    "im_list": "/data/vision/oliva/scenedataset/ADE20K_challenge/data/ADEChallengeData2016/images/validation.txt",
+    "ground_truth": "/data/vision/oliva/scenedataset/ADE20K_challenge/data/ADEChallengeData2016/annotations/",
+    "workspace": "/data/vision/oliva/scenedataset/scaleplaces/datasets/ade20k/",
+    "predictions": "/data/vision/oliva/scenedataset/scaleplaces/datasets/ade20k/prediction_val/"
+  }
+}
