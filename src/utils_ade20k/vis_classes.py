@@ -52,8 +52,9 @@ class Visualizer:
             im = line.split()[0]
             print n, im
             self.add_paths(im)
-            if n == 10 or n % self.refresh_rate:
+            if n == 10 or n % self.refresh_rate == 0:
                 self.write()
+        self.write()
 
     def add_paths(self, im):
         img_dir = config["images"]
