@@ -24,5 +24,12 @@
     "ground_truth": "/data/vision/oliva/scenedataset/ADE20K_challenge/data/ADEChallengeData2016/annotations/",
     "workspace": "/data/vision/oliva/scenedataset/scaleplaces/datasets/ade20k/",
     "predictions": "/data/vision/oliva/scenedataset/scaleplaces/datasets/ade20k/prediction_val/"
+  },
+  "ade20k_local": {
+    "workspace": "/Users/hujh/Documents/UROP_Torralba/datasets/ade20k/",
+    "images": "/Users/hujh/Documents/UROP_Torralba/datasets/ade20k/images/",
+    "im_list": "/Users/hujh/Documents/UROP_Torralba/datasets/ade20k/images/training.txt",
+    "ground_truth": "/Users/hujh/Documents/UROP_Torralba/datasets/ade20k/annotations/",
+    "predictions": "/Users/hujh/Documents/UROP_Torralba/datasets/ade20k/predictions/"
   }
 }

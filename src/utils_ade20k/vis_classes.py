@@ -18,72 +18,87 @@ class Visualizer:
         self.dataset = dummy_datasets.get_coco_dataset()
         self.MAX = MAX
 
-        self.out_dir = "tmp/html/"
+        self.out_dir = "tmp/{}/classes/".format(self.project)
         self.images_dir = os.path.join(self.out_dir, "images/")
-        self.outfile = os.path.join(self.out_dir, "{}_{}.html".format(project, int(time.time())))
         if not os.path.exists(self.images_dir):
             os.makedirs(self.images_dir)
 
-        self.init_outfile()
+        self.print_location(self.out_dir)
 
-    def init_outfile(self):
+        self.out_paths = {}
+        self.refresh_rate = 1000
+
+    def init_outfile(self, class_name):
         head = str(self.config)
-        body = ""
-        html = "<html><head>" + head + "</head><body>" + body + "</body></html>"
-        with open(self.outfile, 'w') as f:
-            f.write(html)
+        html = "<html><head>" + head + "</head><body></body></html>"
 
+        outfile = os.path.join(self.out_dir, "{}.html".format(class_name))
+        with open(outfile, 'w') as f:
+            f.write(html)
+        return outfile
+
+    def print_location(self, loc):
         if 'local' in self.project:
-            print self.outfile
+            print loc
         else:
             # Print link to output file
             root = "/data/vision/oliva/scenedataset/"
-            abs_path = os.path.abspath(self.outfile)
+            abs_path = os.path.abspath(loc)
             rel_path = os.path.relpath(abs_path, root)
             print "http://places.csail.mit.edu/{}".format(rel_path)
 
-    def visualize_images(self, im_list):
+    def visualize_im_list(self, im_list):
         for n, line in enumerate(im_list[:self.MAX]):
-            print n, line
-            self.add_image_section(line)
+            im = line.split()[0]
+            print n, im
+            self.add_paths(im)
+            if n == 10 or n % self.refresh_rate:
+                self.write()
 
-    def add_image_section(self, line):
-        im = line.split()[0]
-        image_tags = []
-
+    def add_paths(self, im):
         img_dir = config["images"]
         pkl_dir = os.path.join(config["predictions"], "maskrcnn/pkl")
         img_path = os.path.join(img_dir, im)
         pkl_path = os.path.join(pkl_dir, im.replace('.jpg', '.pkl'))
 
-        all_segs = vis_image.visualize_all_segmentations(img_path, pkl_path, self.dataset, images_dir=self.images_dir)
-        image_tags.append(self.get_image_tag(all_segs))
+        try:
+            segs = vis_image.visualize_segmentations(img_path, pkl_path, self.dataset, images_dir=self.images_dir)
+            for seg in segs:
+                path, class_name, score = seg
+                if class_name not in self.out_paths:
+                    self.out_paths[class_name] = []
+                self.out_paths[class_name].append([path, score])
+        except:
+            print "Skipping ", im
 
-        segs = vis_image.visualize_segmentations(img_path, pkl_path, self.dataset, images_dir=self.images_dir)
-        for seg in segs:
-            path = seg[0]
-            tag = self.get_image_tag(path)
-            image_tags.append(tag)
+    def write(self):
+        for class_name in self.out_paths:
+            outfile = self.init_outfile(class_name)
+            paths, scores = zip(*self.out_paths[class_name])
+            paths = np.array(paths)
+            scores = np.array(scores)
+            sorted_idx = np.argsort(scores)[::-1]
+            self.write_file(outfile, paths[sorted_idx])
 
-
-        # Build section
-        title = "{} {}".format(self.project, line)
+    def write_file(self, outfile, paths):
+        image_tags = []
+        for path in paths:
+            image_tags.append(self.get_image_tag(path, outfile))
         img_section = ' '.join(image_tags)
-        section = "<br><br>{}<br><br>{}".format(title, img_section)
 
         # Append to body
-        with open(self.outfile, 'r') as f:
+        with open(outfile, 'r') as f:
             html = f.read()
-        new_html = html.replace("</body>", "{}</body>".format(section))
-        with open(self.outfile, 'w') as f:
+        new_html = html.replace("</body>", "{}</body>".format(img_section))
+        with open(outfile, 'w') as f:
             f.write(new_html)
 
-    def get_image_tag(self, path):
+    def get_image_tag(self, path, outfile):
         if os.path.isabs(path):
             # Symlink into tmp image directory
             path = self.symlink(path)
 
-        path = os.path.relpath(path, os.path.dirname(self.outfile))
+        path = os.path.relpath(path, os.path.dirname(outfile))
         return "<img src=\"{}\" height=\"256px\" style=\"image-rendering: pixelated;\">".format(path)
 
     def symlink(self, path):
@@ -111,5 +126,5 @@ if __name__ == "__main__":
         random.seed(3)
         random.shuffle(im_list)
 
-    vis.visualize_images(im_list)
+    vis.visualize_im_list(im_list)
 
