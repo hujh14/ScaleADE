@@ -30,7 +30,7 @@ import os
 import pprint
 import re
 import sys
-import test_net
+import tools.test_net
 
 from caffe2.python import memonger
 from caffe2.python import workspace
@@ -92,7 +92,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
+def main(args):
     # Initialize C2
     workspace.GlobalInit(
         ['caffe2', '--caffe2_log_level=0', '--caffe2_gpu_memory_tracking=1']
@@ -100,7 +100,7 @@ def main():
     # Set up logging and load config options
     logger = setup_logging(__name__)
     logging.getLogger('roi_data.loader').setLevel(logging.INFO)
-    args = parse_args()
+    # args = parse_args()
     logger.info('Called with args:')
     logger.info(args)
     if args.cfg_file is not None:
@@ -278,4 +278,5 @@ def test_model(model_file, multi_gpu_testing, opts=None):
 
 
 if __name__ == '__main__':
-    main()
+    args = parse_args()
+    main(args)
