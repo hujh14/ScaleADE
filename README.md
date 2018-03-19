@@ -2,7 +2,8 @@
 
 ## Getting Started
 
-My fork of detectron lives here. Changes from the original repo are kept to a minimum.
+My fork of Detectron lives here. Changes from the original repo are kept to a minimum.
+You do need to set up the ADE20k dataset as one of Detectron's datasets.
 
 ```
 https://github.com/hujh14/Detectron
@@ -14,6 +15,8 @@ https://github.com/hujh14/Detectron
 - ~~Make sure visualization works here~~
 - Evaluate accuracy of predictions
 - Write simulated annotation module
+- Run experiments!
 - Set up AMT annotation module
+- Annotate Places
 
 
