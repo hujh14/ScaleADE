@@ -14,6 +14,8 @@ https://github.com/hujh14/Detectron
 - ~~Make sure visualization works here~~
 - Evaluate accuracy of predictions
 - Write simulated annotation module
+- Run experiments!
 - Set up AMT annotation module
+- Annotate Places
 
 
