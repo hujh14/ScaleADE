@@ -34,6 +34,7 @@ import sys
 import time
 import numpy as np
 import pickle
+import random
 
 from caffe2.python import workspace
 
@@ -75,12 +76,13 @@ def parse_args():
         required=True,
         type=str
     )
+    parser.add_argument('-r', '--randomize', action='store_true', default=False, help="Randomize image list")
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
     return parser.parse_args()
 
-def predict_dataset(project, out_dir="/tmp/predictions/", visualize=False, visualize_dataset="ade"):
+def predict_dataset(project, out_dir="/tmp/predictions/", visualize=False, visualize_dataset="ade", randomize=False):
     if visualize:
         vis_dir = os.path.join(out_dir, "vis")
         if visualize_dataset == "ade":
@@ -93,6 +95,11 @@ def predict_dataset(project, out_dir="/tmp/predictions/", visualize=False, visua
     pkl_dir = os.path.join(out_dir, "pkl")
     
     im_list = [line.rstrip() for line in open(config["im_list"], 'r')]
+    if args.randomize:
+        # Shuffle image list
+        random.seed(3)
+        random.shuffle(im_list)
+
     for i, im_name in enumerate(im_list):
         img_path = os.path.join(img_dir, im_name)
         img_basename = os.path.splitext(im_name)[0]
@@ -149,7 +156,7 @@ def main(args):
     assert_and_infer_cfg()
     model = infer_engine.initialize_model_from_cfg()
 
-    predict_dataset(args.project, visualize=False)
+    predict_dataset(args.project, visualize=False, randomize=False)
 
 if __name__ == '__main__':
     workspace.GlobalInit(['caffe2', '--caffe2_log_level=0'])
