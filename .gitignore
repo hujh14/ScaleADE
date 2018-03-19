@@ -4,4 +4,4 @@
 src/utils_ade20k/tmp/*
 
 # Detectron cache
-model/detectron-output/*
+src/model/detectron-output/*

@@ -12,13 +12,13 @@ import vis_image
 
 class Visualizer:
 
-    def __init__(self, project, config, MAX=1000):
+    def __init__(self, project, config, MAX=20000):
         self.project = project
         self.config = config
-        self.dataset = dummy_datasets.get_coco_dataset()
+        self.dataset = dummy_datasets.get_ade_dataset()
         self.MAX = MAX
 
-        self.out_dir = "tmp/{}/classes/".format(self.project)
+        self.out_dir = "tmp/{}/classes_ade/".format(self.project)
         self.images_dir = os.path.join(self.out_dir, "images/")
         if not os.path.exists(self.images_dir):
             os.makedirs(self.images_dir)
@@ -26,7 +26,7 @@ class Visualizer:
         self.print_location(self.out_dir)
 
         self.out_paths = {}
-        self.refresh_rate = 1000
+        self.refresh_rate = 100
 
     def init_outfile(self, class_name):
         head = str(self.config)
@@ -58,7 +58,7 @@ class Visualizer:
 
     def add_paths(self, im):
         img_dir = config["images"]
-        pkl_dir = os.path.join(config["predictions"], "maskrcnn/pkl")
+        pkl_dir = os.path.join(config["predictions"], "maskrcnn_ade/pkl")
         img_path = os.path.join(img_dir, im)
         pkl_path = os.path.join(pkl_dir, im.replace('.jpg', '.pkl'))
 
@@ -69,10 +69,11 @@ class Visualizer:
                 if class_name not in self.out_paths:
                     self.out_paths[class_name] = []
                 self.out_paths[class_name].append([path, score])
-        except:
-            print "Skipping ", im
+        except Exception as e:
+            print "Skipping ", im, e
 
     def write(self):
+        print "Writing to files..."
         for class_name in self.out_paths:
             outfile = self.init_outfile(class_name)
             paths, scores = zip(*self.out_paths[class_name])

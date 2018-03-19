@@ -24,11 +24,13 @@ def visualize_segmentations(img_path, pkl_path, dataset, images_dir):
     cls_boxes, cls_segms, cls_keyps = pickle.load(open(pkl_path, 'rb'))
     boxes, segms, keypoints, classes = convert_from_cls_format(cls_boxes, cls_segms, cls_keyps)
 
+    segmentations = []
+    if boxes is None:
+        return segmentations
+    
     masks = mask_util.decode(segms)
     color_list = colormap()
     mask_color_id = 0
-
-    segmentations = []
 
     scores = boxes[:, -1]
     sorted_inds = np.argsort(scores)

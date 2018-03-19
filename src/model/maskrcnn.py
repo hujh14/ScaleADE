@@ -25,7 +25,7 @@ class MaskRCNN:
 
     def train(self):
         opts = ["OUTPUT_DIR", self.OUTPUT_DIR]
-        args = argparse.Namespace(cfg=self.config, opts=opts)
+        args = argparse.Namespace(cfg_file=self.config, opts=opts)
         main(args)
 
 
