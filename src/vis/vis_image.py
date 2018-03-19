@@ -16,8 +16,6 @@ from utils.colormap import colormap
 import utils.keypoints as keypoint_utils
 from utils.vis import *
 
-import misc as io_utils
-
 def visualize_segmentations(img_path, pkl_path, dataset, images_dir):
     # Open image and pkl
     im = imread(img_path)

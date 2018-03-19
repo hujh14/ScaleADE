@@ -13,7 +13,8 @@ import logging
 import numpy as np
 import os
 
-from tools.train_net import main, parse_args
+from tools.train_net import main as train_main
+from tools.infer_dataset import main as infer_main
 
 class MaskRCNN:
 
@@ -26,7 +27,12 @@ class MaskRCNN:
     def train(self):
         opts = ["OUTPUT_DIR", self.OUTPUT_DIR]
         args = argparse.Namespace(cfg_file=self.config, opts=opts)
-        main(args)
+        train_main(args)
+
+    def infer(self, project):
+        args = argparse.Namespace(cfg_file=self.config, weights=self.weights, project=project)
+        infer_main(args)
+
 
 
 if __name__ == '__main__':

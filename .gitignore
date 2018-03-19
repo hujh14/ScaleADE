@@ -1,7 +1,8 @@
 *.pyc
 .DS_Store
 
-src/utils_ade20k/tmp/*
+# Visualization cache
+src/vis/tmp/*
 
 # Detectron cache
 src/model/detectron-output/*

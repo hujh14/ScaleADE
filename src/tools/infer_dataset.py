@@ -80,36 +80,31 @@ def parse_args():
         sys.exit(1)
     return parser.parse_args()
 
-def main(args):
-    logger = logging.getLogger(__name__)
-    merge_cfg_from_file(args.cfg)
-    cfg.TEST.WEIGHTS = args.weights
-    cfg.NUM_GPUS = 1
-    assert_and_infer_cfg()
-    model = infer_engine.initialize_model_from_cfg()
-    # dummy_dataset = dummy_datasets.get_coco_dataset()
-    dummy_dataset = dummy_datasets.get_ade_dataset()
+def predict_dataset(project, out_dir="/tmp/predictions/", visualize=False, visualize_dataset="ade"):
+    if visualize:
+        vis_dir = os.path.join(out_dir, "vis")
+        if visualize_dataset == "ade":
+            dummy_dataset = dummy_datasets.get_ade_dataset()
+        else:
+            dummy_dataset = dummy_datasets.get_coco_dataset()
 
     config = ade20k_utils.get_config(args.project)
     img_dir = config["images"]
-    out_dir = os.path.join(config["predictions"], "maskrcnn_ade")
     pkl_dir = os.path.join(out_dir, "pkl")
-    vis_dir = os.path.join(out_dir, "vis")
     
     im_list = [line.rstrip() for line in open(config["im_list"], 'r')]
-
     for i, im_name in enumerate(im_list):
         img_path = os.path.join(img_dir, im_name)
         img_basename = os.path.splitext(im_name)[0]
         pkl_path = os.path.join(pkl_dir, img_basename + '.pkl')
-        vis_path = os.path.join(vis_dir, img_basename + '.png') 
-        logger.info('Processing {} -> {}'.format(im_name, vis_path))
-        logger.info('{}/{}'.format(i, len(im_list)))
-
-        if os.path.exists(vis_path):
+        if os.path.exists(pkl_path):
             print("Already done")
             continue
 
+        logger.info('Processing {} -> {}'.format(im_name, vis_path))
+        logger.info('{}/{}'.format(i, len(im_list)))
+
+        # Predict
         im = cv2.imread(img_path)
         timers = defaultdict(Timer)
         t = time.time()
@@ -126,23 +121,35 @@ def main(args):
                 'rest (caches and auto-tuning need to warm up)'
             )
 
+        # Save prediction pickle
         pkl_obj = (cls_boxes, cls_segms, cls_keyps)
         if not os.path.isdir(os.path.dirname(pkl_path)):
             os.makedirs(os.path.dirname(pkl_path))
         pickle.dump(pkl_obj, open(pkl_path, "wb"))
         
+        if visualize:
+            vis_path = os.path.join(vis_dir, img_basename + '.png') 
+            if not os.path.isdir(os.path.dirname(vis_path)):
+                os.makedirs(os.path.dirname(vis_path))
 
-        if not os.path.isdir(os.path.dirname(vis_path)):
-            os.makedirs(os.path.dirname(vis_path))
+            vis_image = vis_utils.vis_one_image_opencv(im[:, :, ::-1], cls_boxes, cls_segms, cls_keyps,
+                thresh=0,
+                kp_thresh=2,
+                dataset=dummy_dataset,
+                show_box=True,
+                show_class=True)
+            cv2.imwrite(vis_path, vis_image)
 
-        vis_image = vis_utils.vis_one_image_opencv(im[:, :, ::-1], cls_boxes, cls_segms, cls_keyps,
-            thresh=0,
-            kp_thresh=2,
-            dataset=dummy_dataset,
-            show_box=True,
-            show_class=True)
-        cv2.imwrite(vis_path, vis_image)
 
+def main(args):
+    logger = logging.getLogger(__name__)
+    merge_cfg_from_file(args.cfg)
+    cfg.TEST.WEIGHTS = args.weights
+    cfg.NUM_GPUS = 1
+    assert_and_infer_cfg()
+    model = infer_engine.initialize_model_from_cfg()
+
+    predict_dataset(args.project, visualize=False)
 
 if __name__ == '__main__':
     workspace.GlobalInit(['caffe2', '--caffe2_log_level=0'])

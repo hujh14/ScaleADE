@@ -7,18 +7,23 @@ import numpy as np
 import pandas as pd
 
 import datasets.dummy_datasets as dummy_datasets
-import misc as utils
+import my_utils.projects as projects
 import vis_image
 
 class Visualizer:
 
-    def __init__(self, project, config, MAX=20000):
+    def __init__(self, project, config, MAX=20000, dataset_name="ade"):
         self.project = project
         self.config = config
-        self.dataset = dummy_datasets.get_ade_dataset()
         self.MAX = MAX
 
-        self.out_dir = "tmp/{}/classes_ade/".format(self.project)
+        if dataset_name == "ade":
+            self.dataset = dummy_datasets.get_ade_dataset()
+            print "hi"
+        else:
+            self.dataset = dummy_datasets.get_coco_dataset()
+
+        self.out_dir = "tmp/{}/classes_{}/".format(self.project, dataset_name)
         self.images_dir = os.path.join(self.out_dir, "images/")
         if not os.path.exists(self.images_dir):
             os.makedirs(self.images_dir)
@@ -58,7 +63,7 @@ class Visualizer:
 
     def add_paths(self, im):
         img_dir = config["images"]
-        pkl_dir = os.path.join(config["predictions"], "maskrcnn_ade/pkl")
+        pkl_dir = os.path.join(config["predictions"], "maskrcnn/pkl")
         img_path = os.path.join(img_dir, im)
         pkl_path = os.path.join(pkl_dir, im.replace('.jpg', '.pkl'))
 
@@ -112,16 +117,16 @@ class Visualizer:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--project', type=str, required=True, help="Project name")
-    # parser.add_argument("--prediction", type=str, required=True, help="")
+    parser.add_argument('-d', '--dataset', type=str, default="ade", help="Dataset: ade, coco, etc")
     parser.add_argument('-r', '--randomize', action='store_true', default=False, help="Randomize image list")
     args = parser.parse_args()
 
     # Configuration
-    config = utils.get_config(args.project)
-    vis = Visualizer(args.project, config)
+    config = projects.get_config(args.project)
+    vis = Visualizer(args.project, config, dataset_name=args.dataset)
 
     # Image List
-    im_list = utils.open_im_list(config["im_list"])
+    im_list = projects.open_im_list(config["im_list"])
 
     if args.randomize:
         # Shuffle image list

@@ -7,16 +7,21 @@ import numpy as np
 import pandas as pd
 
 import datasets.dummy_datasets as dummy_datasets
-import misc as utils
+import my_utils.projects as projects
+
 import vis_image
 
 class Visualizer:
 
-    def __init__(self, project, config, MAX=1000):
+    def __init__(self, project, config, MAX=1000, dataset_name="ade"):
         self.project = project
         self.config = config
-        self.dataset = dummy_datasets.get_coco_dataset()
         self.MAX = MAX
+
+        if dataset_name == "ade":
+            self.dataset = dummy_datasets.get_ade_dataset()
+        else:
+            self.dataset = dummy_datasets.get_coco_dataset()
 
         self.out_dir = "tmp/html/"
         self.images_dir = os.path.join(self.out_dir, "images/")
@@ -95,16 +100,16 @@ class Visualizer:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--project', type=str, required=True, help="Project name")
-    # parser.add_argument("--prediction", type=str, required=True, help="")
+    parser.add_argument('-d', '--dataset', type=str, default="ade", help="Dataset: ade, coco, etc")
     parser.add_argument('-r', '--randomize', action='store_true', default=False, help="Randomize image list")
     args = parser.parse_args()
 
     # Configuration
-    config = utils.get_config(args.project)
-    vis = Visualizer(args.project, config)
+    config = projects.get_config(args.project)
+    vis = Visualizer(args.project, config, dataset_name=args.dataset)
 
     # Image List
-    im_list = utils.open_im_list(config["im_list"])
+    im_list = projects.open_im_list(config["im_list"])
 
     if args.randomize:
         # Shuffle image list
