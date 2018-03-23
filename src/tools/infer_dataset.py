@@ -47,7 +47,7 @@ import datasets.dummy_datasets as dummy_datasets
 import utils.c2 as c2_utils
 import utils.logging
 import utils.vis as vis_utils
-import utils_ade20k.misc as ade20k_utils
+import my_utils.projects as projects
 
 c2_utils.import_detectron_ops()
 # OpenCL may be enabled by default in OpenCV3; disable it because it's not
@@ -90,7 +90,7 @@ def predict_dataset(project, out_dir="/tmp/predictions/", visualize=False, visua
         else:
             dummy_dataset = dummy_datasets.get_coco_dataset()
 
-    config = ade20k_utils.get_config(args.project)
+    config = projects.get_config(args.project)
     img_dir = config["images"]
     pkl_dir = os.path.join(out_dir, "pkl")
     

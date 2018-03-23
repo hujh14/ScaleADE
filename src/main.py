@@ -25,7 +25,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
-import cv2  # NOQA (Must import before importing caffe2 due to bug in cv2)
 import os
 import sys
 import time
@@ -33,18 +32,33 @@ import numpy as np
 import pickle
 
 import datasets.dummy_datasets as dummy_datasets
-import utils.c2 as c2_utils
-import utils.logging
 import utils.vis as vis_utils
 import my_utils.projects as projects
 
-from model.maskrcnn import MaskRCNN
+from model.maskrcnn import MaskRCNN, PRETRAINED
+from annotator.sim import SimulatedAnnotator
+from dataset_manager import DatasetManager
 
 def main():
-    model = MaskRCNN()
+    dataset_manager = DatasetManager()
+    datasetA = dataset_manager.dataset_nameA
+    datasetB = dataset_manager.dataset_nameB
+    annotator = SimulatedAnnotator(datasetB)
+
+    initial_weights = PRETRAINED
+    model = MaskRCNN(weights=initial_weights)
+    if initial_weights is None:
+        model.train(datasetA, epoches=10)
+
     for i in range(10):
-        model.train()
-        model.infer()
+        res_file = model.test(datasetB)
+        good_annotations = annotator.filter(res_file)
+        new_dataset = dataset_manager.create_new_dataset(datasetB, good_annotations)
+        # Retrain
+        model.train(new_dataset, epoches=2)
+
+
+
         
 
 
