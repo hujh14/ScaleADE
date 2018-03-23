@@ -4,7 +4,7 @@ import json
 import colorsys
 import numpy as np
 
-PATH = os.path.dirname(__file__)
+PATH = os.path.abspath(os.path.dirname(__file__))
 
 def open_im_list(im_list_txt):
     if ".txt" not in im_list_txt:

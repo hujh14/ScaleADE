@@ -38,6 +38,7 @@ from core.config import merge_cfg_from_file
 from core.config import merge_cfg_from_list
 from core.test_engine import run_inference
 from datasets import task_evaluation
+from datasets.json_dataset import JsonDataset
 import utils.c2
 import utils.logging
 
@@ -92,24 +93,33 @@ def parse_args():
     return parser.parse_args()
 
 
-def main(ind_range=None, multi_gpu_testing=False):
-    output_dir = get_output_dir(training=False)
+def test(ind_range=None, multi_gpu_testing=False):
+    if ind_range != None:
+        cfg.TEST.DATASET = cfg.TEST.DATASETS[0]
+
     all_results = run_inference(
-        output_dir, ind_range=ind_range, multi_gpu_testing=multi_gpu_testing
+        ind_range=ind_range, multi_gpu_testing=multi_gpu_testing
     )
-    if not ind_range:
-        task_evaluation.check_expected_results(
-            all_results,
-            atol=cfg.EXPECTED_RESULTS_ATOL,
-            rtol=cfg.EXPECTED_RESULTS_RTOL
+    if ind_range:
+        all_boxes, all_segms, all_keyps = all_results
+        dataset = JsonDataset(cfg.TEST.DATASET)
+        output_dir = get_output_dir(cfg.TEST.DATASET, training=False)
+
+        all_results = task_evaluation.evaluate_masks(
+            dataset, all_boxes, all_segms, output_dir
         )
-        task_evaluation.log_copy_paste_friendly_results(all_results)
 
+    # if not ind_range:
+    task_evaluation.check_expected_results(
+        all_results,
+        atol=cfg.EXPECTED_RESULTS_ATOL,
+        rtol=cfg.EXPECTED_RESULTS_RTOL
+    )
+    task_evaluation.log_copy_paste_friendly_results(all_results)
 
-if __name__ == '__main__':
+def main(args):
     workspace.GlobalInit(['caffe2', '--caffe2_log_level=0'])
     logger = utils.logging.setup_logging(__name__)
-    args = parse_args()
     logger.info('Called with args:')
     logger.info(args)
     if args.cfg_file is not None:
@@ -124,4 +134,8 @@ if __name__ == '__main__':
         logger.info('Waiting for \'{}\' to exist...'.format(cfg.TEST.WEIGHTS))
         time.sleep(10)
 
-    main(ind_range=args.range, multi_gpu_testing=args.multi_gpu_testing)
+    test(ind_range=args.range, multi_gpu_testing=args.multi_gpu_testing)
+
+if __name__ == '__main__':
+    args = parse_args()
+    main(args)

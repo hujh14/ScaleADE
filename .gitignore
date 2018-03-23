@@ -1,4 +1,5 @@
 *.pyc
+
 .DS_Store
 
 # Visualization cache
@@ -6,3 +7,5 @@ src/vis/tmp/*
 
 # Detectron cache
 src/model/detectron-output/*
+
+src/workspace/*
