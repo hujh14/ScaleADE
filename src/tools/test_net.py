@@ -33,12 +33,9 @@ from caffe2.python import workspace
 
 from core.config import assert_and_infer_cfg
 from core.config import cfg
-from core.config import get_output_dir
 from core.config import merge_cfg_from_file
 from core.config import merge_cfg_from_list
 from core.test_engine import run_inference
-from datasets import task_evaluation
-from datasets.json_dataset import JsonDataset
 import utils.c2
 import utils.logging
 
@@ -92,33 +89,8 @@ def parse_args():
         sys.exit(1)
     return parser.parse_args()
 
-
-def test(ind_range=None, multi_gpu_testing=False):
-    if ind_range != None:
-        cfg.TEST.DATASET = cfg.TEST.DATASETS[0]
-
-    all_results = run_inference(
-        ind_range=ind_range, multi_gpu_testing=multi_gpu_testing
-    )
-    if ind_range:
-        all_boxes, all_segms, all_keyps = all_results
-        dataset = JsonDataset(cfg.TEST.DATASET)
-        output_dir = get_output_dir(cfg.TEST.DATASET, training=False)
-
-        all_results = task_evaluation.evaluate_masks(
-            dataset, all_boxes, all_segms, output_dir
-        )
-
-    # if not ind_range:
-    task_evaluation.check_expected_results(
-        all_results,
-        atol=cfg.EXPECTED_RESULTS_ATOL,
-        rtol=cfg.EXPECTED_RESULTS_RTOL
-    )
-    task_evaluation.log_copy_paste_friendly_results(all_results)
-
 def main(args):
-    workspace.GlobalInit(['caffe2', '--caffe2_log_level=0'])
+    workspace.GlobalInit(['caffe2', '--caffe2_log_level=2'])
     logger = utils.logging.setup_logging(__name__)
     logger.info('Called with args:')
     logger.info(args)
@@ -126,7 +98,7 @@ def main(args):
         merge_cfg_from_file(args.cfg_file)
     if args.opts is not None:
         merge_cfg_from_list(args.opts)
-    assert_and_infer_cfg()
+    assert_and_infer_cfg(make_immutable=False) # Necessary but not recommended
     logger.info('Testing with config:')
     logger.info(pprint.pformat(cfg))
 
@@ -134,7 +106,14 @@ def main(args):
         logger.info('Waiting for \'{}\' to exist...'.format(cfg.TEST.WEIGHTS))
         time.sleep(10)
 
-    test(ind_range=args.range, multi_gpu_testing=args.multi_gpu_testing)
+    all_results = run_inference(
+        cfg.TEST.WEIGHTS,
+        ind_range=args.range,
+        multi_gpu_testing=args.multi_gpu_testing,
+        check_expected_results=True,
+    )
+    return all_results
+
 
 if __name__ == '__main__':
     args = parse_args()

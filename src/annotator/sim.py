@@ -8,7 +8,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
-import logging
 import pprint
 import numpy as np
 import os
@@ -16,12 +15,10 @@ import os
 from pycocotools.cocoeval import COCOeval
 
 from datasets.json_dataset import JsonDataset
-import utils.logging
 
 from annotator.annotator_utils import *
 
 PATH = os.path.abspath(os.path.dirname(__file__))
-logger = utils.logging.setup_logging(__name__)
 
 class SimulatedAnnotator:
 
@@ -56,7 +53,7 @@ class SimulatedAnnotator:
                 if match != 0:
                     filtered.append(coco_dt.anns[dtId])
 
-        logger.info("{} annotations -> {} annotations".format(len(coco_dt.getAnnIds()), len(filtered)))
+        print("{} annotations -> {} annotations".format(len(coco_dt.getAnnIds()), len(filtered)))
         return filtered
 
 if __name__ == '__main__':

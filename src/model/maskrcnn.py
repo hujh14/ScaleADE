@@ -8,61 +8,71 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
-import logging
 import numpy as np
 import os
 
 from core.config import cfg
-from core.config import get_output_dir
+from datasets import task_evaluation
 from datasets.json_dataset import JsonDataset
 
 from tools.train_net import main as train_net
 from tools.test_net import main as test_net
 from tools.infer_dataset import main as infer_dataset
 
+from dataset_manager import get_dataset_stats
+
 PATH = os.path.abspath(os.path.dirname(__file__))
 PRETRAINED = "/data/vision/oliva/scenedataset/scaleplaces/ScaleADE/src/model/detectron-output/train/ade20k_train/generalized_rcnn/model_final.pkl"
 
 class MaskRCNN:
 
-    def __init__(self, weights=None):
+    def __init__(self, output_dir):
         self.config = os.path.join(PATH, "configs/e2e_mask_rcnn_R-101-FPN_1x.yaml")
-        self.weights = weights
+        self.output_dir = output_dir
 
-        self.OUTPUT_DIR = os.path.join(PATH, "../workspace/")
+    def train(self, dataset, weights=None, epochs=10):
+        print("Training: {}, Weights: {}, Epochs: {}".format(dataset, weights, epochs))
 
-    def train(self, dataset, epoches=10):
-        opts = ["OUTPUT_DIR", self.OUTPUT_DIR,
-                "TRAIN.DATASETS", (dataset,)]
-        if self.weights is not None:
-            opts.extend(["TRAIN.WEIGHTS", self.weights])
+        max_iter = epochs * get_dataset_stats(dataset)['num_images']
 
-        print("epoches not implemented yet")
+        # Modify opts
+        opts = ["OUTPUT_DIR", self.output_dir,
+                "TRAIN.DATASETS", (dataset,),
+                "SOLVER.MAX_ITER", max_iter,
+                "SOLVER.STEPS", [0, 2./3 * max_iter, 8./9 * max_iter]]
+        if weights is not None:
+            opts.extend(["TRAIN.WEIGHTS", weights])
 
-        args = argparse.Namespace(cfg_file=self.config, opts=opts)
-        train_net(args)
+        args = argparse.Namespace(cfg_file=self.config, opts=opts, skip_test=True)
+        checkpoints = train_net(args)
+        return checkpoints["final"]
 
-    def test(self, dataset):
-        opts = ["OUTPUT_DIR", self.OUTPUT_DIR,
+    def predict(self, dataset, weights):
+        print("Testing on {} with weights: {}".format(dataset, weights))
+
+        opts = ["OUTPUT_DIR", self.output_dir,
                 "TEST.DATASETS", (dataset,)]
-        if self.weights is not None:
-            opts.extend(["TEST.WEIGHTS", self.weights])
+        opts.extend(["TEST.WEIGHTS", weights])
 
-        args = argparse.Namespace(cfg_file=self.config, range=[0,100], opts=opts, multi_gpu_testing=True)
-        test_net(args)
+        args = argparse.Namespace(cfg_file=self.config, opts=opts, range=None, multi_gpu_testing=False)
+        all_results = test_net(args)
 
-        # Get res_file path
-        output_dir = get_output_dir(dataset, training=False)
-        json_dataset = JsonDataset(dataset)
-        res_file = os.path.join(output_dir, 'segmentations_' + json_dataset.name + '_results.json')
+        # Get result file path
+        # This was a pretty hacky way to get result file
+        output_dir = self.get_output_dir(dataset, training=False)
+        res_file = os.path.join(output_dir, 'segmentations_' + dataset_name + '_results.json')
         return res_file
 
-    def infer(self, project):
-        args = argparse.Namespace(cfg_file=self.config, weights=self.weights, project=project)
-        infer_dataset(args)
+    def get_output_dir(self, dataset_name, training=True):
+        # <output-dir>/<train|test>/<dataset-name>/<model-type>/
+        tag = 'train' if training else 'test'
+        model_type = "generalized_rcnn"
+        outdir = os.path.join(self.output_dir, tag, dataset_name, model_type)
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+        return outdir
 
 if __name__ == '__main__':
-    model = MaskRCNN(weights=PRETRAINED)
-    model.train("ade20k_train")
-    # model.test("ade20k_val")
+    model = MaskRCNN(output_dir="../workspace")
+    model.train("ade20k_train", weights=None)
 

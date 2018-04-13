@@ -35,25 +35,19 @@ from model.maskrcnn import MaskRCNN, PRETRAINED
 from annotator.sim import SimulatedAnnotator
 from dataset_manager import DatasetManager
 
-def main():
-    output_dir = os.path.abspath("workspace")
 
+def main():
     dataset_manager = DatasetManager()
+
+    epochs = 10
+    output_dir = os.path.abspath("workspace")
     model = MaskRCNN(output_dir)
 
     ratio = 0.2
     datasetA, datasetB = dataset_manager.split_dataset('ade20k_train', ratio=ratio)
-
     weights = model.train(datasetA, weights=None, epochs=10)
-
-    while True:
-        small_datasetB = dataset_manager.random_subset(datasetB, 100)
-        predictions = model.predict(small_datasetB, weights)
-        annotations = annotator.filter(predictions)
-        new_dataset = dataset_manager.create_dataset_with_new_annotations(datasetB, annotations)
-
-        weights = model.train(new_dataset, weights, epochs=1)
-
+    small_datasetB = dataset_manager.random_subset(datasetB, 1000)
+    result = model.predict(small_datasetB, weights)
 
 if __name__ == '__main__':
     main()

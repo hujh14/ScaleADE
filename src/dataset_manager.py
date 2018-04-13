@@ -7,7 +7,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
-import logging
 import pprint
 import cv2
 import numpy as np
@@ -20,10 +19,8 @@ from pycocotools import mask as COCOmask
 
 from datasets.json_dataset import JsonDataset
 from datasets.dataset_catalog import *
-import utils.logging
 
 PATH = os.path.abspath(os.path.dirname(__file__))
-logger = utils.logging.setup_logging(__name__)
 
 class DatasetManager:
 
@@ -32,30 +29,45 @@ class DatasetManager:
         if self.output_dir is None:
             self.output_dir = "/tmp/ScaleADE/datasets/"
 
-        A, B = self.split_dataset('ade20k_train', ratio=0.5)
-        self.dataset_nameA = A
-        self.dataset_nameB = B
+    def random_subset(self, dataset_name, num):
+        dataset = DATASETS[dataset_name]
+        im_dir = dataset[IM_DIR]
+        ann_fn = dataset[ANN_FN]
+
+        ann_file = json.load(open(ann_fn, 'r'))
+        images = ann_file["images"]
+        annotations = ann_file["annotations"]
+        categories = ann_file["categories"]
+
+        new_images = random.sample(images, num)
+        ids = set([im['id'] for im in new_images])
+        new_annotations = [ann for ann in annotations if ann['image_id'] in ids]
+
+        new_dataset_name = dataset_name + str(uuid.uuid4())
+        new_ann_fn = '{}/{}.json'.format("custom", new_dataset_name)
+        new_ann_fn = os.path.join(self.output_dir, new_ann_fn)
+
+        self.save_ann_file(new_images, new_annotations, categories, fname=new_ann_fn)
+        self.export_to_DATASETS(new_dataset_name, im_dir, new_ann_fn)
+        return new_dataset_name
 
     def split_dataset(self, dataset_name, ratio=0.5):
         dataset = DATASETS[dataset_name]
-        nameA = dataset_name + 'A'
-        nameB = dataset_name + 'B'
-        pathA = os.path.join(self.output_dir, '{}/{}/{}.json'.format(dataset_name, ratio, nameA))
-        pathB = os.path.join(self.output_dir, '{}/{}/{}.json'.format(dataset_name, ratio, nameB))
-        datasetA = {}
-        datasetB = {}
-        datasetA[IM_DIR] = dataset[IM_DIR]
-        datasetB[IM_DIR] = dataset[IM_DIR]
-        datasetA[ANN_FN] = pathA
-        datasetB[ANN_FN] = pathB
-        DATASETS[nameA] = datasetA
-        DATASETS[nameB] = datasetB
+        im_dir = dataset[IM_DIR]
+        ann_fn = dataset[ANN_FN]
 
-        if not os.path.exists(pathA) or not os.path.exists(pathB):
-            dataset_anns = json.load(open(dataset[ANN_FN], 'r'))
-            images = dataset_anns["images"]
-            categories = dataset_anns["categories"]
-            annotations = dataset_anns["annotations"]
+        dataset_nameA = dataset_name + '_{}_A'.format(ratio)
+        dataset_nameB = dataset_name + '_{}_B'.format(ratio)
+        ann_fnA = '{}/{}/{}.json'.format(dataset_name, "splits", dataset_nameA)
+        ann_fnB = '{}/{}/{}.json'.format(dataset_name, "splits", dataset_nameB)
+        ann_fnA = os.path.join(self.output_dir, ann_fnA)
+        ann_fnB = os.path.join(self.output_dir, ann_fnB)
+
+        if not os.path.exists(ann_fnA) or not os.path.exists(ann_fnB):
+            ann_file = json.load(open(ann_fn, 'r'))
+            images = ann_file["images"]
+            annotations = ann_file["annotations"]
+            categories = ann_file["categories"]
 
             n = len(images)
             k = int(ratio*n)
@@ -67,52 +79,84 @@ class DatasetManager:
             annotationsA = [ann for ann in annotations if ann['image_id'] in idsA]
             annotationsB = [ann for ann in annotations if ann['image_id'] in idsB]
 
-            self.output(pathA, imagesA, annotationsA, categories)
-            self.output(pathB, imagesB, annotationsB, categories)
+            self.save_ann_file(imagesA, annotationsA, categories, fname=ann_fnA)
+            self.save_ann_file(imagesB, annotationsB, categories, fname=ann_fnB)
 
-        return nameA, nameB
+        self.export_to_DATASETS(dataset_nameA, im_dir, ann_fnA)
+        self.export_to_DATASETS(dataset_nameB, im_dir, ann_fnB)
+        return dataset_nameA, dataset_nameB
 
-    def output(self, fname, images, annotations, categories):
-        logger.info("Writing annotations to " + fname)
-        data_out = {'categories': categories, 'images': images, 'annotations': annotations}
-
-        if not os.path.isdir(os.path.dirname(fname)):
-            os.makedirs(os.path.dirname(fname))
-        with open(fname, 'w') as f:
-            json.dump(data_out, f)
-
-    def create_new_dataset(self, dataset_name, new_annotations):
+    def create_dataset_with_new_annotations(self, dataset_name, new_annotations):
         dataset = DATASETS[dataset_name]
-        name = dataset_name + str(uuid.uuid4())
-        path = os.path.join(self.output_dir, '{}/{}/{}.json'.format(dataset_name, "random", name))
-        new_dataset = {}
-        new_dataset[IM_DIR] = dataset[IM_DIR]
-        new_dataset[ANN_FN] = path
-        DATASETS[name] = new_dataset
+        old_im_dir = dataset[IM_DIR]
+        old_ann_fn = dataset[ANN_FN]
+        old_ann_file = json.load(open(old_ann_fn, 'r'))
+        old_images = dataset_anns["images"]
+        old_annotations = dataset_anns["annotations"]
+        old_categories = dataset_anns["categories"]
 
-        # Write new annotations json
-        dataset_anns = json.load(open(dataset[ANN_FN], 'r'))
-        images = dataset_anns["images"]
-        categories = dataset_anns["categories"]
-        annotations = dataset_anns["annotations"]
+        # Ground truth must be polygons not masks
+        new_annotations = convert_annotations_to_polygon(new_annotations)
 
-        clean_annotations = []
-        # Convert to polygons
-        for ann in new_annotations:
-            clean_ann = {k: v for k, v in ann.items()}
-
-            clean_ann['bbox'] = ann['bbox'].tolist()
-            clean_ann['area'] = int(ann['area'])
-            polygon = rle_to_polygon(ann['segmentation'])
-            if polygon is not None:
-                clean_ann['segmentation'] = polygon
-                clean_annotations.append(clean_ann)
-
-        ids = set([ann['image_id'] for ann in clean_annotations])
+        ids = set([ann['image_id'] for ann in new_annotations])
         new_images = [im for im in images if im['id'] in ids]
 
-        self.output(path, new_images, clean_annotations, categories)
-        return name
+        # Save
+        new_dataset_name = dataset_name + str(uuid.uuid4())
+        new_ann_fn = '{}/{}/{}.json'.format(dataset_name, "custom", new_dataset_name)
+        new_ann_fn = os.path.join(self.output_dir, new_ann_fn)
+        self.save_ann_file(new_images, new_annotations, old_categories, fname=new_ann_fn)
+        self.export_to_DATASETS(new_dataset_name, old_im_dir, new_ann_fn)
+        return new_dataset_name
+
+    def export_to_DATASETS(self, dataset_name, im_dir, ann_fn):
+        # Export to DATASETS variable for use by other programs
+        new_dataset = {}
+        new_dataset[IM_DIR] = im_dir
+        new_dataset[ANN_FN] = ann_fn
+        assert os.path.exists(ann_fn)
+        DATASETS[dataset_name] = new_dataset
+        print("Exported {} dataset.".format(dataset_name))
+
+    def save_ann_file(self, images, annotations, categories, fname=None):
+        if fname is None:
+            fname = "tmp/{}.json".format(uuid.uuid4())
+            os.path.join(self.output_dir, fname)
+        if not os.path.isdir(os.path.dirname(fname)):
+            os.makedirs(os.path.dirname(fname))
+
+        data_out = {'images': images, 'annotations': annotations, 'categories': categories}
+        with open(fname, 'w') as f:
+            json.dump(data_out, f)
+        print("Created annotations: {}".format(fname))
+        return fname
+
+def get_dataset_stats(dataset_name):
+    dataset = DATASETS[dataset_name]
+    ann_file = json.load(open(dataset[ANN_FN], 'r'))
+    images = ann_file["images"]
+    annotations = ann_file["annotations"]
+    categories = ann_file["categories"]
+
+    stats = {}
+    stats["num_images"] = len(images)
+    stats["num_annotations"] = len(annotations)
+    stats["num_categories"] = len(categories)
+    return stats
+
+def convert_annotations_to_polygon(annotations):
+    clean_annotations = []
+    # Convert to polygons
+    for ann in new_annotations:
+        clean_ann = {k: v for k, v in ann.items()}
+
+        clean_ann['bbox'] = ann['bbox'].tolist()
+        clean_ann['area'] = int(ann['area'])
+        polygon = rle_to_polygon(ann['segmentation'])
+        if polygon is not None:
+            clean_ann['segmentation'] = polygon
+            clean_annotations.append(clean_ann)
+    return clean_annotations
 
 def rle_to_polygon(rle):
     mask = COCOmask.decode(rle)

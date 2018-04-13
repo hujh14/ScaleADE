@@ -8,7 +8,7 @@ NUM_GPUS: 2
 SOLVER:
   WEIGHT_DECAY: 0.0001
   LR_POLICY: steps_with_decay
-  BASE_LR: 0.005 # 0.02/4
+  BASE_LR: 0.005 # 0.02 with 8 gpus
   GAMMA: 0.1
   MAX_ITER: 360000 # 90000*4
   STEPS: [0, 240000, 320000] # 60000*4, 80000*4
@@ -38,7 +38,7 @@ TRAIN:
   RPN_PRE_NMS_TOP_N: 2000  # Per FPN level
 TEST:
   DATASETS: ('ade20k_val',)
-  SCALES: (800,)
+  SCALE: 800
   MAX_SIZE: 1333
   NMS: 0.5
   RPN_PRE_NMS_TOP_N: 1000  # Per FPN level
